@@ -1,6 +1,6 @@
 import 'bootstrap/dist/css/bootstrap.min.css'
 import './index.less'
-import {isMouseInDomElement, centerInMouse} from './util'
+import {isMouseInDomElement, centerInMouse, range} from './util'
 
 window.$ = $
 
@@ -11,7 +11,7 @@ window.SHELF_INFO = {
     height: [3, 4, 5, 6, 9]
 }
 // column: 每一行存放的商品列表
-SHELF_INFO.column = SHELF_INFO.height.map(() => [])
+SHELF_INFO.row = SHELF_INFO.height.map(() => [])
 
 // 字段列表
 const FIELD_LIST = [
@@ -112,17 +112,21 @@ const render_reset_frame = () => {
 // 渲染货架的行
 const render_frame_column = () => {
     const {index, insertRow} = dragInfo
-    const str = SHELF_INFO.column[insertRow].map((v, i) => {
+    let left = 0
+    const str = SHELF_INFO.row[insertRow].map((v, i) => {
         const item = SHELF_LIST.find(v2 => v2.id == v)
         const itemIndex = SHELF_LIST.findIndex(v2 => v2.id == v)
-        return `<div data-id="${item.id}" class="item" style="width: ${item.size.width}px; height: ${item.size.height}px; background-color: ${colors[itemIndex]};">${item.id}\n${item.name}</div>`
+        const {width, height} = item.size
+        const html = `<div data-id="${item.id}" class="item" style="width: ${width}px; height: ${height}px; left: ${left}px; background-color: ${colors[itemIndex]};">${item.id}\n${item.name}</div>`
+        left += width
+        return html
     })
     $frame.find('li').eq(insertRow).html(str)
 }
 
 // 获取货架当前行的宽度
 const getWidthOfColumn = () => {
-    return SHELF_INFO.column[dragInfo.insertRow].reduce((prev, cur) => {
+    return SHELF_INFO.row[dragInfo.insertRow].reduce((prev, cur) => {
         const {width} = SHELF_LIST.find(v => v.id === cur)
         return prev + width
     }, 0)
@@ -156,7 +160,7 @@ $frame.on('mousedown', '.item', function(e) {
 
     dragInfo.insertRow = row
 
-    SHELF_INFO.column[row].splice(column, 1)
+    SHELF_INFO.row[row].splice(column, 1)
     render_frame_column()
 
     render_layer(e)
@@ -186,10 +190,17 @@ $(document.body)
         return
     }
 
-    // console.log(e.pageX - $frame.find('li').offset().left)
 
     dragInfo.insertAble = item.width + getWidthOfColumn() <= SHELF_INFO.width && item.height <= SHELF_INFO.height[dragInfo.insertRow]
     $frame.find('li').eq(dragInfo.insertRow).addClass(dragInfo.insertAble ? 'active' : 'error')
+
+
+
+    // const disX = e.pageX - $frame.find('li').offset().left
+
+    // console.log(range(disX, SHELF_INFO.row[dragInfo.insertRow]))
+    // console.log(SHELF_INFO.row[dragInfo.insertRow].map(v => SHELF_LIST.find(v2 => v2.id === v).size.width))
+
 })
 .mouseup(e => {
     if(!dragInfo.isDragging) {
@@ -210,7 +221,20 @@ $(document.body)
     }
 
     const {index, insertRow} = dragInfo
-    SHELF_INFO.column[insertRow].push(SHELF_LIST[index].id)
+    const {id} = SHELF_LIST[index]
+
+    const disX = e.pageX - $frame.find('li').offset().left
+    const disArr = SHELF_INFO.row[insertRow].map(v => SHELF_LIST.find(v2 => v2.id === v).size.width)
+
+    dragInfo.insertColumn = range(disX, disArr)
+
+    if(dragInfo.insertColumn === -1) {
+        SHELF_INFO.row[insertRow].push(id)
+    }else {
+        SHELF_INFO.row[insertRow].splice(dragInfo.insertColumn, 0, id)
+    }
+
+
     render_frame_column()
 
 

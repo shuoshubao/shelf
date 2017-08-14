@@ -19,3 +19,13 @@ export const centerInMouse = ($target, size, e) => {
         top: pageY - size.height / 2 - $(window).scrollTop()
     })
 }
+
+export const sum = arr => arr.reduce((prev, cur) => prev + cur, 0)
+
+export const range = (num, arr) => {
+    const temp = arr.reduce((prev, cur, index, arr) => {
+        prev.push([prev[index][1], sum(arr.slice(0, index)) + cur / 2])
+        return prev
+    }, [[0, 0]]).slice(1)
+    return temp.findIndex(v => num >= v[0] && num < v[1])
+}
